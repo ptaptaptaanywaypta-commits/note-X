@@ -1,13 +1,14 @@
 # Obsidianメモからnote Draftを生成する自動化
 
-このリポジトリは、Obsidian Vaultに保存したMarkdownメモのうち、記事化してよいものだけを読み取り、OpenAI APIで以下のDraftを生成するための仕組みです。
+Obsidian Vaultに保存したMarkdownメモのうち、記事化してよいものだけを読み取り、OpenAI APIで以下を生成します。
 
 - note記事案
+- noteへコピペしやすい本文ファイル
 - X投稿案
 - 医療安全、個人情報、著作権、文体のチェックリスト
 - 生成メタデータ
 
-noteへの自動投稿、Xへの自動投稿は実装していません。生成されたPull Requestを人間が確認、修正、承認したうえで、noteとXには手動で投稿します。
+noteへの自動投稿、Xへの自動投稿は実装していません。生成物は必ず人間が確認、修正してから手動で投稿してください。
 
 ## 記事化対象にするメモ
 
@@ -38,17 +39,15 @@ theme: vital
 - `drafts`、`generated`、`archive`、`templates` フォルダ内にある
 - 患者ID、カルテ番号、電話番号、メールアドレスなど、明らかな個人情報らしき内容が含まれる
 
+`#note化候補` は基本的に消さなくて大丈夫です。二重生成は `.automation/processed.json` で防ぎます。
+
 ## GitHub Secrets
 
 GitHubリポジトリの `Settings > Secrets and variables > Actions` で次を設定してください。
 
-- `OPENAI_API_KEY`: OpenAI APIキー
+- `OPENAI_API_KEY`: OpenAI APIキー本体だけを入れる
 
-モデルを変えたい場合は、Actions variablesに `OPENAI_MODEL` を設定できます。未設定の場合は `gpt-4.1-mini` を使います。
-
-`GITHUB_TOKEN` はGitHub Actions標準のトークンを使うため、通常は追加設定不要です。
-
-Pull Requestを自動作成するため、リポジトリの `Settings > Actions > General > Workflow permissions` で `Allow GitHub Actions to create and approve pull requests` を有効にしてください。
+`OPENAI_API_KEY=` は付けません。モデルを変えたい場合は、Actions variablesに `OPENAI_MODEL` を設定できます。未設定の場合は `gpt-4.1-mini` を使います。
 
 ## GitHub Actionsの実行
 
@@ -60,17 +59,18 @@ Pull Requestを自動作成するため、リポジトリの `Settings > Actions
 2. `Generate note draft articles` を選ぶ
 3. `Run workflow` を押す
 
-変更が生成された場合だけ、新しいブランチとPull Requestが作成されます。PRタイトルは `Generate note draft articles` です。
+変更が生成された場合は、Pull Requestではなく `main` ブランチへ直接コミットされます。生成のたびに `automation/...` ブランチは増えません。
 
 ## 生成されるファイル
 
-- `articles/drafts/YYYY-MM-DD_slug.md`
-- `x_posts/drafts/YYYY-MM-DD_slug.md`
-- `checklists/drafts/YYYY-MM-DD_slug.md`
-- `metadata/drafts/YYYY-MM-DD_slug.yaml`
-- `.automation/processed.json`
+- `articles/drafts/YYYY-MM-DD_slug.md`: frontmatterと確認メモ付きの記事案
+- `note_posts/drafts/YYYY-MM-DD_slug.md`: noteにコピペしやすい本文版
+- `x_posts/drafts/YYYY-MM-DD_slug.md`: X投稿案3つ
+- `checklists/drafts/YYYY-MM-DD_slug.md`: 医療安全、個人情報、著作権、文体チェック
+- `metadata/drafts/YYYY-MM-DD_slug.yaml`: 生成メタデータ
+- `.automation/processed.json`: 二重生成防止の記録
 
-1回の実行で最大3件まで処理します。二重生成を避けるため、処理済みの元メモは `.automation/processed.json` に記録されます。
+1回の実行で最大3件まで処理します。
 
 ## 注意点
 
