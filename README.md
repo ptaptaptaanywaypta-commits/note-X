@@ -1,0 +1,81 @@
+# Obsidianメモからnote Draftを生成する自動化
+
+このリポジトリは、Obsidian Vaultに保存したMarkdownメモのうち、記事化してよいものだけを読み取り、OpenAI APIで以下のDraftを生成するための仕組みです。
+
+- note記事案
+- X投稿案
+- 医療安全、個人情報、著作権、文体のチェックリスト
+- 生成メタデータ
+
+noteへの自動投稿、Xへの自動投稿は実装していません。生成されたPull Requestを人間が確認、修正、承認したうえで、noteとXには手動で投稿します。
+
+## 記事化対象にするメモ
+
+Markdown本文に次のタグを付けると記事化対象になります。
+
+```markdown
+#note化候補
+```
+
+または、ファイル冒頭のfrontmatterで次のように指定します。
+
+```yaml
+---
+publish_ok: true
+type: article_seed
+target: young_pt
+theme: vital
+---
+```
+
+## 除外されるメモ
+
+次の条件に当てはまるMarkdownは処理されません。
+
+- `#note化候補` がなく、`publish_ok: true` もない
+- `#個人メモ`、`#保留`、`#要確認` のいずれかが付いている
+- `.automation/processed.json` に処理済みとして記録されている
+- `drafts`、`generated`、`archive`、`templates` フォルダ内にある
+- 患者ID、カルテ番号、電話番号、メールアドレスなど、明らかな個人情報らしき内容が含まれる
+
+## GitHub Secrets
+
+GitHubリポジトリの `Settings > Secrets and variables > Actions` で次を設定してください。
+
+- `OPENAI_API_KEY`: OpenAI APIキー
+
+モデルを変えたい場合は、Actions variablesに `OPENAI_MODEL` を設定できます。未設定の場合は `gpt-4.1-mini` を使います。
+
+`GITHUB_TOKEN` はGitHub Actions標準のトークンを使うため、通常は追加設定不要です。
+
+Pull Requestを自動作成するため、リポジトリの `Settings > Actions > General > Workflow permissions` で `Allow GitHub Actions to create and approve pull requests` を有効にしてください。
+
+## GitHub Actionsの実行
+
+`.github/workflows/generate-note-drafts.yml` は週2回の定期実行と手動実行に対応しています。
+
+手動実行する場合:
+
+1. GitHubの `Actions` タブを開く
+2. `Generate note draft articles` を選ぶ
+3. `Run workflow` を押す
+
+変更が生成された場合だけ、新しいブランチとPull Requestが作成されます。PRタイトルは `Generate note draft articles` です。
+
+## 生成されるファイル
+
+- `articles/drafts/YYYY-MM-DD_slug.md`
+- `x_posts/drafts/YYYY-MM-DD_slug.md`
+- `checklists/drafts/YYYY-MM-DD_slug.md`
+- `metadata/drafts/YYYY-MM-DD_slug.yaml`
+- `.automation/processed.json`
+
+1回の実行で最大3件まで処理します。二重生成を避けるため、処理済みの元メモは `.automation/processed.json` に記録されます。
+
+## 注意点
+
+医療情報は断定しすぎず、施設基準、医師、看護師、多職種連携を無視しない表現にしてください。生成物はあくまでDraftです。
+
+個人情報については、患者が特定される年齢、疾患、経過、日付、病院名、地域、職業などが具体的すぎないか必ず確認してください。
+
+著作権については、既存書籍、論文、Web記事の文章をそのまま使っていないか、既存キャラクターや漫画作品に依存した表現になっていないか確認してください。
