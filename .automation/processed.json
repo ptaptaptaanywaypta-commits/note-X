@@ -1,3 +1,15 @@
 {
-  "processed_files": {}
+  "processed_files": {
+    "notes/腹部外科的術後.md": {
+      "processed_at": "2026-04-25T10:03:48.617438+00:00",
+      "source_sha256": "1ca29f1f875df8a9c4ff1f2e8e63e5e3e1c36288782998cfea450f5931b3434e",
+      "outputs": {
+        "article": "articles/drafts/2026-04-25_article_d63dd130.md",
+        "note_post": "note_posts/drafts/2026-04-25_article_d63dd130.md",
+        "x_posts": "x_posts/drafts/2026-04-25_article_d63dd130.md",
+        "checklist": "checklists/drafts/2026-04-25_article_d63dd130.md",
+        "metadata": "metadata/drafts/2026-04-25_article_d63dd130.yaml"
+      }
+    }
+  }
 }
