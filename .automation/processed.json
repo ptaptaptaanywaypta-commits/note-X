@@ -1,3 +1,14 @@
 {
-  "processed_files": {}
+  "processed_files": {
+    "notes/腹部外科的術後.md": {
+      "processed_at": "2026-04-25T06:10:00+00:00",
+      "source_sha256": "4d5d540abb953832630345e171bc86fb7f51bb4b9d048dc61e579db456f77253",
+      "outputs": {
+        "article": "articles/drafts/2026-04-25_refilling_postop_rehab.md",
+        "x_posts": "x_posts/drafts/2026-04-25_refilling_postop_rehab.md",
+        "checklist": "checklists/drafts/2026-04-25_refilling_postop_rehab.md",
+        "metadata": "metadata/drafts/2026-04-25_refilling_postop_rehab.yaml"
+      }
+    }
+  }
 }
