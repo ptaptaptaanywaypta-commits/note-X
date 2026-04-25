@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "0 21 * * 1,4"
   workflow_dispatch:
+  push:
+    paths:
+      - "notes/**/*.md"
+      - "scripts/**"
+      - ".github/workflows/generate-note-drafts.yml"
 
 permissions:
   contents: write
