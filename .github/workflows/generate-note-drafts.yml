@@ -12,7 +12,10 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
+
+concurrency:
+  group: generate-note-drafts-main
+  cancel-in-progress: false
 
 jobs:
   generate:
@@ -21,6 +24,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -36,7 +41,7 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4.1-mini' }}
-          PR_BODY_PATH: ${{ runner.temp }}/note-drafts-pr-body.md
+          PR_BODY_PATH: ${{ runner.temp }}/note-drafts-summary.md
         run: python scripts/generate_note_drafts.py
 
       - name: Check generated changes
@@ -44,23 +49,17 @@ jobs:
         run: |
           if [ -n "$(git status --porcelain)" ]; then
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            git status --short
           else
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No generated changes."
           fi
 
-      - name: Create pull request
+      - name: Commit generated changes to main
         if: steps.changes.outputs.has_changes == 'true'
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "Generate note draft articles"
-          title: "Generate note draft articles"
-          body-path: ${{ runner.temp }}/note-drafts-pr-body.md
-          branch: automation/generate-note-drafts-${{ github.run_id }}
-          delete-branch: true
-          add-paths: |
-            articles/drafts
-            x_posts/drafts
-            checklists/drafts
-            metadata/drafts
-            .automation/processed.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add articles/drafts note_posts/drafts x_posts/drafts checklists/drafts metadata/drafts .automation/processed.json
+          git commit -m "Generate note draft articles"
+          git push origin HEAD:main
