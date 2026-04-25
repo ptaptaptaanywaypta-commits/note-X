@@ -24,6 +24,7 @@ SKIP_DIRS = {
     ".github",
     ".automation",
     "articles",
+    "note_posts",
     "x_posts",
     "checklists",
     "metadata",
@@ -40,7 +41,7 @@ def main() -> int:
 
     if not os.getenv("OPENAI_API_KEY"):
         print("OPENAI_API_KEY is not set. Skipping generation.", file=sys.stderr)
-        write_pr_body([])
+        write_summary([])
         return 0
 
     processed = load_processed()
@@ -49,7 +50,7 @@ def main() -> int:
     print(f"Found {len(candidates)} candidate note(s). Processing {len(selected)}.")
 
     if not selected:
-        write_pr_body([])
+        write_summary([])
         return 0
 
     from openai import OpenAI
@@ -68,7 +69,7 @@ def main() -> int:
         records.append({"source": relative_source, **paths})
 
     save_processed(processed)
-    write_pr_body(records)
+    write_summary(records)
     print_generated(records)
     return 0
 
@@ -76,6 +77,7 @@ def main() -> int:
 def ensure_directories() -> None:
     for path in (
         ROOT / "articles" / "drafts",
+        ROOT / "note_posts" / "drafts",
         ROOT / "x_posts" / "drafts",
         ROOT / "checklists" / "drafts",
         ROOT / "metadata" / "drafts",
@@ -189,7 +191,9 @@ def generate_draft(client: Any, system_prompt: str, style_guide: str, source_fil
     user_prompt = (
         f"文体ガイド:\n{style_guide}\n\n"
         f"元メモのパス: {source_file}\n\n"
-        "以下のObsidianメモから、note記事案、X投稿案3つ、医療安全・個人情報・著作権・文体の確認項目を生成してください。\n\n"
+        "以下のObsidianメモから、note記事案、X投稿案3つ、"
+        "医療安全・個人情報・著作権・文体の確認項目を生成してください。"
+        "Obsidianメモにない具体的な患者情報、数値、文献、経験談は追加しないでください。\n\n"
         f"```markdown\n{source_text}\n```"
     )
     response = client.responses.create(
@@ -220,6 +224,7 @@ def write_outputs(source_path: Path, output: dict[str, Any]) -> dict[str, str]:
 
     paths = {
         "article": f"articles/drafts/{date_prefix}_{slug}.md",
+        "note_post": f"note_posts/drafts/{date_prefix}_{slug}.md",
         "x_posts": f"x_posts/drafts/{date_prefix}_{slug}.md",
         "checklist": f"checklists/drafts/{date_prefix}_{slug}.md",
         "metadata": f"metadata/drafts/{date_prefix}_{slug}.yaml",
@@ -228,6 +233,7 @@ def write_outputs(source_path: Path, output: dict[str, Any]) -> dict[str, str]:
     x_posts = ensure_three_items(output.get("x_posts", []))
 
     write_text(ROOT / paths["article"], render_article(output, source_file, generated_at, hashtags))
+    write_text(ROOT / paths["note_post"], render_note_post(output, hashtags))
     write_text(ROOT / paths["x_posts"], render_x_posts(source_file, paths["article"], generated_at, x_posts))
     write_text(ROOT / paths["checklist"], render_checklist(output, source_file, paths["article"], generated_at))
     write_text(ROOT / paths["metadata"], render_metadata(output, source_file, generated_at, hashtags, theme))
@@ -237,7 +243,8 @@ def write_outputs(source_path: Path, output: dict[str, Any]) -> dict[str, str]:
 def unique_slug(source_path: Path, date_prefix: str) -> str:
     base = slugify(source_path.stem)
     if not base:
-        base = "article_" + hashlib.sha1(source_path.as_posix().encode("utf-8")).hexdigest()[:8]
+        digest = hashlib.sha1(source_path.as_posix().encode("utf-8")).hexdigest()[:8]
+        base = f"article_{digest}"
     slug = base
     counter = 2
     while (ROOT / "articles" / "drafts" / f"{date_prefix}_{slug}.md").exists():
@@ -283,6 +290,23 @@ def render_article(output: dict[str, Any], source_file: str, generated_at: str, 
         "## 人間確認メモ",
         "",
         "\n".join(f"- {note}" for note in notes),
+        "",
+    ])
+
+
+def render_note_post(output: dict[str, Any], hashtags: list[str]) -> str:
+    title = str(output.get("title", "Untitled draft")).strip()
+    article = str(output.get("article_markdown", "")).strip()
+    return "\n".join([
+        f"# {title}",
+        "",
+        article,
+        "",
+        "---",
+        "",
+        "## note用ハッシュタグ",
+        "",
+        "\n".join(hashtags),
         "",
     ])
 
@@ -363,7 +387,7 @@ def mark_processed(processed: dict[str, Any], source_path: Path, paths: dict[str
     }
 
 
-def write_pr_body(records: list[dict[str, str]]) -> None:
+def write_summary(records: list[dict[str, str]]) -> None:
     body_path = os.getenv("PR_BODY_PATH")
     if not body_path:
         return
@@ -382,6 +406,7 @@ def write_pr_body(records: list[dict[str, str]]) -> None:
             lines.extend([
                 f"- Source: `{record['source']}`",
                 f"  - Article: `{record['article']}`",
+                f"  - Note copy: `{record['note_post']}`",
                 f"  - X posts: `{record['x_posts']}`",
                 f"  - Checklist: `{record['checklist']}`",
                 f"  - Metadata: `{record['metadata']}`",
@@ -396,10 +421,11 @@ def print_generated(records: list[dict[str, str]]) -> None:
         return
     print("Generated files:")
     for record in records:
-        print(f"- {record['article']}")
-        print(f"- {record['x_posts']}")
-        print(f"- {record['checklist']}")
-        print(f"- {record['metadata']}")
+        print(f"- Article: {record['article']}")
+        print(f"- Note copy: {record['note_post']}")
+        print(f"- X posts: {record['x_posts']}")
+        print(f"- Checklist: {record['checklist']}")
+        print(f"- Metadata: {record['metadata']}")
 
 
 def normalize_hashtags(values: Any) -> list[str]:
