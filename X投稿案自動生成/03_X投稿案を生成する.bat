@@ -1,22 +1,22 @@
 @echo off
-chcp 65001 >nul
 cd /d "%~dp0"
-echo.
-echo ==========================================
-echo X投稿案を生成します
-echo ==========================================
-echo.
-echo 1. input\ここにnote記事URLを貼る.txt からURLを読み込みます。
-echo 2. OpenAI APIで投稿案を生成します。
-echo 3. output フォルダに保存します。
+
+echo Generating X posts...
 echo.
 
+where npm.cmd >nul 2>nul
+if errorlevel 1 (
+  echo npm.cmd was not found.
+  echo Please make sure Node.js is installed.
+  pause
+  exit /b 1
+)
+
 if not exist "node_modules" (
-  echo 初回準備中です。少し待ってください...
+  echo First setup. Installing packages...
   call npm.cmd install
   if errorlevel 1 (
-    echo.
-    echo npm install に失敗しました。
+    echo npm install failed.
     pause
     exit /b 1
   )
@@ -24,17 +24,14 @@ if not exist "node_modules" (
 
 call npm.cmd run generate
 if errorlevel 1 (
-  echo.
-  echo 生成に失敗しました。
-  echo .env と input\ここにnote記事URLを貼る.txt を確認してください。
+  echo Generation failed.
+  echo Check .env and the note URL text file.
   pause
   exit /b 1
 )
 
 echo.
-echo 完了しました。output フォルダを開きます。
-start "" "%~dp0output"
-if exist "%~dp0output\まず見る_X投稿案.md" (
-  start "" "%~dp0output\まず見る_X投稿案.md"
-)
+echo Done. Opening output folder...
+if not exist "output" mkdir "output"
+explorer "%CD%\output"
 pause
