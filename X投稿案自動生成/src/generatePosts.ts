@@ -62,59 +62,85 @@ const postsSchema = {
         }
       }
     },
-    clinicalPosts: {
-      type: "array",
-      minItems: 5,
-      maxItems: 5,
-      items: { type: "string" }
-    },
-    knowledgePosts: {
-      type: "array",
-      minItems: 5,
-      maxItems: 5,
-      items: { type: "string" }
-    },
-    sharpLines: {
-      type: "array",
-      minItems: 10,
-      maxItems: 10,
-      items: { type: "string" }
-    }
+    clinicalPosts: { type: "array", minItems: 5, maxItems: 5, items: { type: "string" } },
+    knowledgePosts: { type: "array", minItems: 5, maxItems: 5, items: { type: "string" } },
+    sharpLines: { type: "array", minItems: 10, maxItems: 10, items: { type: "string" } }
   }
 } as const;
 
 export function buildPrompt(article: ExtractedArticle): string {
-  const trimmedBody = article.body.slice(0, 12000);
-  return `あなたは、理学療法士向けnote記事をX投稿に展開する編集者です。
+  const trimmedBody = article.body.slice(0, 14000);
+
+  return `あなたは、理学療法士が書いたnote記事を読み込み、X投稿案に編集する人です。
+
+最重要方針:
+- まず記事本文を理解してください。
+- 記事に書かれていない一般論で水増ししないでください。
+- 投稿を読んだ人が「この記事は何について書いてあるか」を端的に理解できるようにしてください。
+- それぞれの投稿に、記事固有の主張・場面・キーワード・具体例を最低1つ入れてください。
+- 似た投稿を量産せず、切り口を変えてください。
+
+最初に頭の中で整理すること:
+1. この記事の中心メッセージは何か
+2. 読者に持ち帰ってほしい要点は何か
+3. 記事内で印象的な具体例、言い回し、臨床場面は何か
+4. 新人〜若手PTがつまずきやすい点は何か
+5. noteを読む理由が自然に伝わる導線は何か
+
+ただし、出力JSONにはこの分析メモを書かないでください。投稿案だけを出してください。
 
 対象読者:
 - 新人〜若手理学療法士
 - 急性期リハ、バイタルサイン、離床判断、呼吸循環、がんリハ、地域包括ケアに関心がある
 
-文体ルール:
+文体:
 - 上から目線にしない
 - 一緒に学ぶ感じ
 - 医療的に断定しすぎない
-- 「絶対」「必ず」「これだけで判断」などを避ける
 - 不安を煽らない
 - 患者・新人・他職種を下げない
-- 1文を長くしすぎない
-- 絵文字は原則使わない
+- 短く、読みやすく、1文を長くしすぎない
+- 絵文字は使わない
 - 「です・ます」と「だと思います」を自然に混ぜる
-- noteリンク誘導は押し売り感を出さない
+- 押し売りではなく、「必要なら読んでみてください」くらいの温度感
+
+禁止:
+- 「絶対」「必ず」「これだけで判断できる」
+- 「知らないと危険」「今すぐやめて」などの煽り
+- 記事内容と関係の薄い一般論
+- 同じ文型の繰り返し
+- タイトルだけを言い換えた薄い投稿
 
 出力要件:
-- singlePosts: 10本。textはURLなしで140字以内。textWithUrlは末尾に ${article.url} を入れ、全体で140字以内。
-- threads: 3セット。各4〜6投稿。1投稿目は問題提起、途中で要点、最後はnoteリンクへ自然に導線。各投稿280字以内。
-- imagePosts: 5本。画像生成AIで図解化しやすい投稿文と、16:9/4:3の画像生成プロンプト。
-- clinicalPosts: 5本。新人PTや若手PTが「わかる」と思いやすいが、誰かを下げない。
-- knowledgePosts: 5本。教科書知識と臨床での見方をつなぐ。専門用語は短く補足。
-- sharpLines: 10本。断定・煽りではなく、静かに刺さる一文。note誘導にも使える。
+- singlePosts: 10本
+  - text: URLなし、140字以内
+  - textWithUrl: 末尾に ${article.url} を入れる。全体で140字以内
+  - 1本ごとに切り口を変える
+  - 「この記事では〇〇を整理しました」のように内容が分かる文を優先する
+- threads: 3セット
+  - 各4〜6投稿
+  - 1投稿目は問題提起
+  - 2〜4投稿目で記事の要点を具体的に説明
+  - 最後はnoteリンクへ自然につなげる
+  - 各投稿280字以内
+- imagePosts: 5本
+  - 記事内容を図解にしやすい投稿文
+  - prompt16x9とprompt4x3を作る
+  - 画像プロンプトには、図に入れる見出しや構成も含める
+- clinicalPosts: 5本
+  - 新人PTや若手PTが「わかる」と思いやすい臨床場面
+  - 患者・職場・他職種を下げない
+- knowledgePosts: 5本
+  - 教科書知識と臨床での見方をつなぐ
+  - 専門用語を使う場合は短く補足する
+- sharpLines: 10本
+  - 静かに刺さる一文
+  - noteへの誘導文として使える
 
 記事情報:
 タイトル: ${article.title}
 URL: ${article.url}
-主テーマ: ${article.mainTheme}
+推定テーマ: ${article.mainTheme}
 見出し: ${article.headings.join(" / ") || "抽出なし"}
 キーワード: ${article.keywords.join(" / ")}
 
@@ -127,10 +153,7 @@ export async function generatePosts(
   config: AppConfig
 ): Promise<GeneratedPosts | null> {
   if (config.mode === "prompt") return null;
-
-  if (!process.env.OPENAI_API_KEY) {
-    return null;
-  }
+  if (!process.env.OPENAI_API_KEY) return null;
 
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const response = await client.responses.create({
@@ -139,14 +162,11 @@ export async function generatePosts(
       {
         role: "system",
         content:
-          "あなたは医療職向けコンテンツの編集者です。臨床的に誠実で、断定しすぎない日本語を書きます。"
+          "あなたは医療職向けコンテンツの編集者です。記事本文を正確に読み、臨床的に誠実で、具体的な日本語のX投稿案を書きます。"
       },
-      {
-        role: "user",
-        content: buildPrompt(article)
-      }
+      { role: "user", content: buildPrompt(article) }
     ],
-    temperature: 0.7,
+    temperature: 0.45,
     text: {
       format: {
         type: "json_schema",
@@ -165,77 +185,41 @@ export async function generatePosts(
 
 export function createLocalDraft(article: ExtractedArticle): GeneratedPosts {
   const theme = article.mainTheme;
-  const keywords = article.keywords.slice(0, 3).join("、") || "バイタルや臨床判断";
-  const singles = [
-    `${theme}は、ひとつの数値だけで決めきれない場面があります。${keywords}を手がかりに、患者さんの変化を一緒に見ていきたいです。`,
-    `新人の頃ほど、${theme}で「この判断でよいのかな」と迷いやすいと思います。数値と様子を並べて見る練習が助けになります。`,
-    `${theme}で大切なのは、正常値を覚えることだけではないと思います。その人のいつもと比べて、何が変わったかを見たいです。`,
-    `バイタルを見るとき、数字が先に目に入ります。でも表情、会話、呼吸のしんどさも同じくらい大事な情報です。`,
-    `${theme}で迷ったら、止めるか進めるかだけでなく「どう進めるか」も考えたいです。選択肢が少し増えます。`,
-    `臨床では、教科書どおりに割り切れない場面があります。だからこそ${theme}は、数値と経過をチームで共有したいです。`,
-    `「なんとなくしんどそう」は、記録しにくいけれど大切な観察です。${theme}では、その違和感を言葉にする練習も必要だと思います。`,
-    `${theme}で不安になるのは、未熟だからだけではないと思います。確認する材料が多い場面ほど、迷いも自然に増えます。`,
-    `数字が落ち着いていても、患者さんの反応がいつもと違うことがあります。${theme}では、その小さな差を大切にしたいです。`,
-    `急性期のリハでは、進める勇気と止まる勇気の両方が必要です。${theme}を整理しておくと、相談もしやすくなります。`
-  ];
+  const text = `${theme}について、記事本文をもとに整理しました。数値だけでなく、患者さんの反応や経過も合わせて見る視点を大切にしたいです。`;
 
   return {
-    singlePosts: singles.map((text) => ({
-      text: trimTo(text, 140),
-      textWithUrl: appendUrlWithinLimit(text, article.url, 140),
-      suggestedUse: "記事公開後の単発投稿"
+    singlePosts: Array.from({ length: 10 }, (_, index) => ({
+      text: trimTo(`${text} ${index + 1}`, 140),
+      textWithUrl: appendUrlWithinLimit(`${text} ${index + 1}`, article.url, 140),
+      suggestedUse: "記事紹介"
     })),
-    threads: [
-      {
-        title: `${theme}の見方`,
-        posts: [
-          `${theme}で迷うのは、知識が足りないからだけではないと思います。情報が多いからこそ、何を組み合わせて見るかが難しいです。`,
-          `まず見たいのは、数値そのものと変化の方向です。SpO2、血圧、脈拍などは単独でなく、前後の流れで受け止めたいです。`,
-          `次に、表情や会話、呼吸のしんどさ、疲労感も合わせます。記録に残りにくい違和感ほど、丁寧に言葉にしておきたいです。`,
-          `記事では、${theme}を新人〜若手PT目線で整理しました。よければ臨床前の確認にどうぞ。\n${article.url}`
-        ]
-      },
-      {
-        title: "バイタルと反応",
-        posts: [
-          `バイタルサインを見るとき、つい数字だけで安心したくなることがあります。でも臨床では、数字の外側にも大事な情報があります。`,
-          `たとえばSpO2が保たれていても、呼吸数が増えていたり、会話が短くなっていたりすることがあります。そこは見落としたくないところです。`,
-          `血圧や脈拍も、今の値だけでなく前後の変化を見ます。活動でどう変わり、休むとどう戻るかは判断の手がかりになります。`,
-          `このあたりをnoteで整理しました。新人〜若手PTの確認用に使えたらうれしいです。\n${article.url}`
-        ]
-      },
-      {
-        title: "離床前に立ち止まる視点",
-        posts: [
-          `離床前の確認は、「できる・できない」を決める作業だけではないと思います。どう進めると負担が少ないかを考える時間でもあります。`,
-          `確認したいのは、疾患や禁忌、バイタル、症状、前回からの変化です。どれかひとつで決めきらず、組み合わせて見たいです。`,
-          `患者さんの「今日は少ししんどい」も大切な情報です。主観的な訴えは、数値と同じテーブルに置いて考えたいです。`,
-          `noteでは、そんな臨床の迷いを少し整理しています。必要なところだけ読んでもらえたらと思います。\n${article.url}`
-        ]
-      }
-    ],
+    threads: Array.from({ length: 3 }, (_, index) => ({
+      title: `${theme}の整理 ${index + 1}`,
+      posts: [
+        `${theme}は、ひとつの情報だけで判断しにくい場面があります。`,
+        "記事では、数値、症状、経過、患者さんの反応を合わせて見る視点を整理しています。",
+        "新人〜若手PTが臨床で迷いやすいポイントを、少し立ち止まって考える内容です。",
+        `必要なところだけでも読んでみてください。\n${article.url}`
+      ]
+    })),
     imagePosts: Array.from({ length: 5 }, (_, index) => ({
-      text: `${theme}を図にするなら、「数値」「症状」「経過」「相談」の4つに分けると整理しやすいです。`,
-      prompt16x9: `16:9。新人理学療法士向け。${theme}を「数値・症状・経過・相談」の4象限で整理する図解。白背景、青緑とグレー、文字は少なめ。案${index + 1}`,
-      prompt4x3: `4:3。新人理学療法士向け。${theme}を「数値・症状・経過・相談」の4象限で整理する図解。白背景、青緑とグレー、文字は少なめ。案${index + 1}`
+      text: `${theme}を図解するなら、数値・症状・経過・相談の4つに分けると整理しやすいです。`,
+      prompt16x9: `16:9。${theme}を「数値・症状・経過・相談」の4象限で整理する図解。白背景、青緑、グレー、文字少なめ。案${index + 1}`,
+      prompt4x3: `4:3。${theme}を「数値・症状・経過・相談」の4象限で整理する図解。白背景、青緑、グレー、文字少なめ。案${index + 1}`
     })),
-    clinicalPosts: Array.from({ length: 5 }, () =>
-      `${theme}の場面で、数値は悪くないのに「少ししんどそう」と感じることがあります。その違和感を共有できる形にするのも大事な臨床力だと思います。`
-    ),
-    knowledgePosts: Array.from({ length: 5 }, () =>
-      `教科書の知識は、臨床で見る順番をつくる助けになります。${theme}では、正常値だけでなく、その人のいつもとの違いを見る視点も持ちたいです。`
-    ),
+    clinicalPosts: Array.from({ length: 5 }, () => `${theme}の場面で、数値は悪くないのに少し気になることがあります。その違和感を言葉にすることも大切だと思います。`),
+    knowledgePosts: Array.from({ length: 5 }, () => `教科書の知識は、臨床で見る順番をつくる助けになります。${theme}では、その人のいつもとの違いも見たいです。`),
     sharpLines: [
-      "SpO2だけ見ていると、呼吸のしんどさを見落とすことがある。",
-      "離床判断は、数字と表情のあいだにある迷いを扱う仕事でもある。",
+      "数字だけでは、患者さんのしんどさを拾いきれないことがある。",
+      "迷った判断ほど、見た情報を言葉にして共有したい。",
       "正常値に見えても、その人にとって普通とは限らない。",
-      "不安な判断ほど、一人で抱えず言葉にしたい。",
+      "臨床の違和感は、観察の入口かもしれない。",
       "バイタルは止めるためだけでなく、進め方を考えるためにも見る。",
       "患者さんの一言が、数値より先に変化を教えてくれることがある。",
-      "急ぐより、根拠をそろえて進めるほうが結果的に早いこともある。",
-      "臨床の違和感は、未熟さではなく観察の入口かもしれない。",
+      "急ぐより、根拠をそろえて進めるほうが助けになることもある。",
       "知識は判断を狭めるためでなく、相談しやすくするためにもある。",
-      "迷った記録は、次の自分とチームを助ける。"
+      "迷った記録は、次の自分とチームを助ける。",
+      "ひとつの数値ではなく、その人の変化を見る。"
     ]
   };
 }
