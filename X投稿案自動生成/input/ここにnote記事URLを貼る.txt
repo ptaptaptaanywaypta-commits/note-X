@@ -1,5 +1,0 @@
-ここにnote記事URLを貼って保存してください。
-例:
-https://note.com/enr296/n/n3d95708a388b?from=notice
-
-使うときは、1行目でも2行目でもよいので note のURLが入っていればOKです。

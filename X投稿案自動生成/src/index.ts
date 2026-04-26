@@ -9,6 +9,7 @@ import { writeOutputs } from "./writeOutputs.js";
 import type { AppConfig, GenerationMode } from "./types.js";
 
 const URL_INPUT_PATHS = [
+  "ここにnote記事URLを貼る.txt",
   "input/ここにnote記事URLを貼る.txt",
   "input/note_url.txt"
 ];

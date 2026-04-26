@@ -1,0 +1,25 @@
+【毎回やること】
+
+1. 「ここにnote記事URLを貼る.txt」を開く
+2. note記事URLを貼って保存する
+3. 「03_X投稿案を生成する.bat」をダブルクリックする
+4. outputフォルダの「まず見る_X投稿案.md」を見る
+
+【最初の1回だけ】
+
+.env に OpenAI APIキーを入れておく。
+
+OPENAI_API_KEY=あなたのAPIキー
+OPENAI_MODEL=gpt-5.4-mini
+GENERATION_MODE=api
+
+【見るファイル】
+
+まず見る:
+output\まず見る_X投稿案.md
+
+スレッド:
+output\スレッド投稿案.md
+
+図解:
+output\図解プロンプト.md
