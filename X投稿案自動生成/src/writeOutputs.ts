@@ -15,17 +15,28 @@ export async function writeOutputs(params: {
   await writeFile("output/review_report.md", renderReviewReport(issues), "utf8");
 
   if (!posts) {
-    await writeFile("output/x_posts.md", "promptモードのため未生成です。output/prompt_for_chatgpt.md をChatGPTに貼り付けてください。\n", "utf8");
+    const message = "OpenAI API生成は未実行です。output/prompt_for_chatgpt.md をChatGPTに貼り付けてください。\n";
+    await writeFile("output/まず見る_X投稿案.md", message, "utf8");
+    await writeFile("output/x_posts.md", message, "utf8");
     await writeFile("output/x_posts.csv", csvHeader(), "utf8");
-    await writeFile("output/thread_posts.md", "promptモードのため未生成です。\n", "utf8");
-    await writeFile("output/image_prompts.md", "promptモードのため未生成です。\n", "utf8");
+    await writeFile("output/スレッド投稿案.md", message, "utf8");
+    await writeFile("output/thread_posts.md", message, "utf8");
+    await writeFile("output/図解プロンプト.md", message, "utf8");
+    await writeFile("output/image_prompts.md", message, "utf8");
     return;
   }
 
-  await writeFile("output/x_posts.md", renderXPosts(posts, article.url), "utf8");
+  const xPosts = renderXPosts(posts, article.url);
+  const threads = renderThreads(posts);
+  const imagePrompts = renderImagePrompts(posts);
+
+  await writeFile("output/まず見る_X投稿案.md", xPosts, "utf8");
+  await writeFile("output/x_posts.md", xPosts, "utf8");
   await writeFile("output/x_posts.csv", renderCsv(posts, article.url), "utf8");
-  await writeFile("output/thread_posts.md", renderThreads(posts), "utf8");
-  await writeFile("output/image_prompts.md", renderImagePrompts(posts), "utf8");
+  await writeFile("output/スレッド投稿案.md", threads, "utf8");
+  await writeFile("output/thread_posts.md", threads, "utf8");
+  await writeFile("output/図解プロンプト.md", imagePrompts, "utf8");
+  await writeFile("output/image_prompts.md", imagePrompts, "utf8");
 }
 
 function buildSummary(article: ExtractedArticle) {
@@ -40,7 +51,7 @@ function buildSummary(article: ExtractedArticle) {
 }
 
 function renderXPosts(posts: GeneratedPosts, noteUrl: string): string {
-  const lines = ["# X投稿案", "", `note: ${noteUrl}`, ""];
+  const lines = ["# まず見る_X投稿案", "", `note: ${noteUrl}`, ""];
 
   lines.push("## A. 単発投稿 10本", "");
   posts.singlePosts.forEach((post, index) => {
