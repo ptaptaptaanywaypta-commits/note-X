@@ -1,0 +1,22 @@
+{
+  "name": "note-to-x-posts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "generate": "tsx src/index.ts",
+    "generate:prompt": "tsx src/index.ts --prompt-only",
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.7",
+    "openai": "^4.78.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2"
+  }
+}
