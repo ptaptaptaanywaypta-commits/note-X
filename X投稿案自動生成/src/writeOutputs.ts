@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import type { ExtractedArticle, GeneratedPosts, ReviewIssue } from "./types.js";
 
 export async function writeOutputs(params: {
@@ -9,6 +9,7 @@ export async function writeOutputs(params: {
 }): Promise<void> {
   const { article, posts, prompt, issues } = params;
   await mkdir("output", { recursive: true });
+  await removeOldOutputs();
 
   await writeFile("output/prompt_for_chatgpt.md", prompt, "utf8");
   await writeFile("output/summary.json", JSON.stringify(buildSummary(article), null, 2), "utf8");
@@ -17,12 +18,9 @@ export async function writeOutputs(params: {
   if (!posts) {
     const message = "OpenAI API生成は未実行です。output/prompt_for_chatgpt.md をChatGPTに貼り付けてください。\n";
     await writeFile("output/まず見る_X投稿案.md", message, "utf8");
-    await writeFile("output/x_posts.md", message, "utf8");
     await writeFile("output/x_posts.csv", csvHeader(), "utf8");
     await writeFile("output/スレッド投稿案.md", message, "utf8");
-    await writeFile("output/thread_posts.md", message, "utf8");
     await writeFile("output/図解プロンプト.md", message, "utf8");
-    await writeFile("output/image_prompts.md", message, "utf8");
     return;
   }
 
@@ -31,12 +29,19 @@ export async function writeOutputs(params: {
   const imagePrompts = renderImagePrompts(posts);
 
   await writeFile("output/まず見る_X投稿案.md", xPosts, "utf8");
-  await writeFile("output/x_posts.md", xPosts, "utf8");
   await writeFile("output/x_posts.csv", renderCsv(posts, article.url), "utf8");
   await writeFile("output/スレッド投稿案.md", threads, "utf8");
-  await writeFile("output/thread_posts.md", threads, "utf8");
   await writeFile("output/図解プロンプト.md", imagePrompts, "utf8");
-  await writeFile("output/image_prompts.md", imagePrompts, "utf8");
+}
+
+async function removeOldOutputs(): Promise<void> {
+  const files = [
+    "output/x_posts.md",
+    "output/thread_posts.md",
+    "output/image_prompts.md"
+  ];
+
+  await Promise.all(files.map((file) => rm(file, { force: true })));
 }
 
 function buildSummary(article: ExtractedArticle) {
