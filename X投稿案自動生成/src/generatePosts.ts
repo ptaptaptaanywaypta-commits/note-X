@@ -71,7 +71,7 @@ const postsSchema = {
 export function buildPrompt(article: ExtractedArticle): string {
   const trimmedBody = article.body.slice(0, 14000);
 
-  return `あなたは、理学療法士が書いたnote記事を読み込み、X投稿案に編集する人です。
+  return `あなたは、理学療法士本人が自分のnote記事をXで紹介するときの投稿案を作る編集者です。
 
 最重要方針:
 - まず記事本文を理解してください。
@@ -79,6 +79,8 @@ export function buildPrompt(article: ExtractedArticle): string {
 - 投稿を読んだ人が「この記事は何について書いてあるか」を端的に理解できるようにしてください。
 - それぞれの投稿に、記事固有の主張・場面・キーワード・具体例を最低1つ入れてください。
 - 似た投稿を量産せず、切り口を変えてください。
+- 「自分が書いた記事を紹介している」スタンスにしてください。
+- ただし宣伝っぽくしすぎず、「こんなことを整理しました」「このあたりを書きました」くらいの自然な距離感にしてください。
 
 最初に頭の中で整理すること:
 1. この記事の中心メッセージは何か
@@ -103,6 +105,10 @@ export function buildPrompt(article: ExtractedArticle): string {
 - 絵文字は使わない
 - 「です・ます」と「だと思います」を自然に混ぜる
 - 押し売りではなく、「必要なら読んでみてください」くらいの温度感
+- もう少しだけXらしいラフさを出す
+- きれいに整えすぎず、少しだけ人間味のある言い回しにする
+- 例: 「ここ、けっこう迷いますよね」「自分も新人の頃ここで悩みました」「今回はこのあたりを整理しました」
+- ただし砕けすぎない。専門職として誠実な温度は保つ
 
 禁止:
 - 「絶対」「必ず」「これだけで判断できる」
@@ -117,6 +123,8 @@ export function buildPrompt(article: ExtractedArticle): string {
   - textWithUrl: 末尾に ${article.url} を入れる。全体で140字以内
   - 1本ごとに切り口を変える
   - 「この記事では〇〇を整理しました」のように内容が分かる文を優先する
+  - できれば2文にする。1文目で記事内容、2文目で読者への自然な導線や自分の感想を書く
+  - URLなし版は、140字ぎりぎりまで使ってもよい
 - threads: 3セット
   - 各4〜6投稿
   - 1投稿目は問題提起
@@ -136,6 +144,7 @@ export function buildPrompt(article: ExtractedArticle): string {
 - sharpLines: 10本
   - 静かに刺さる一文
   - noteへの誘導文として使える
+  - 可能なら、記事紹介の前置きとして使える自然な一文にする
 
 記事情報:
 タイトル: ${article.title}
